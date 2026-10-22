@@ -15,5 +15,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - run: python -m unittest -v test_macclean
+      - run: python -m unittest -v test_macclean test_macwinclean
       - run: python macclean.py --help
+      - run: python macwinclean.py --help

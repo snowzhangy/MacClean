@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MacClean</title>
+<style nonce="__CSP_NONCE__">
+  :root{
+    --bg:#0e1117; --panel:#171c26; --panel2:#1f2632; --line:#2a3340;
+    --txt:#e6edf3; --dim:#8b97a7; --accent:#4da3ff; --danger:#ff5d5d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;display:flex;flex-direction:column}
+  header{display:flex;gap:8px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header .logo{font-weight:700;letter-spacing:.3px;margin-right:6px}
+  header .logo b{color:var(--accent)}
+  input[type=text]{flex:0 1 420px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:8px;font-size:13px}
+  button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#06223f;font-weight:600}
+  button.danger{background:var(--danger);border-color:var(--danger);color:#3a0000;font-weight:600}
+  .chip{padding:5px 10px;font-size:12px;color:var(--dim)}
+  .chip:hover{color:var(--txt)}
+  main{flex:1;display:flex;min-height:0}
+  #chart{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-width:0}
+  #crumbs{position:absolute;top:12px;left:14px;right:14px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;color:var(--dim);font-size:12px}
+  #crumbs a{color:var(--accent);cursor:pointer;text-decoration:none}
+  #crumbs a:hover{text-decoration:underline}
+  #crumbs span.sep{color:var(--line)}
+  aside{width:330px;flex:none;background:var(--panel);border-left:1px solid var(--line);padding:16px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .sel-name{font-size:15px;font-weight:600;word-break:break-all}
+  .sel-path{color:var(--dim);font-size:11px;word-break:break-all;margin-top:4px}
+  .sel-size{font-size:26px;font-weight:700;margin-top:8px}
+  .sel-meta{color:var(--dim);font-size:12px;margin-top:2px}
+  .actions{display:flex;gap:8px;margin-top:12px}
+  .actions button{flex:1}
+  h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);font-weight:600}
+  .list{display:flex;flex-direction:column;gap:2px}
+  .row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer}
+  .row:hover{background:var(--panel2)}
+  .row .sw{width:10px;height:10px;border-radius:3px;flex:none}
+  .row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .sz{color:var(--dim);font-variant-numeric:tabular-nums}
+  .row .bar{height:3px;border-radius:2px;margin-top:3px;background:var(--accent);opacity:.5}
+  .row .nmwrap{flex:1;min-width:0}
+  #status{position:absolute;bottom:12px;left:14px;color:var(--dim);font-size:12px}
+  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(14,17,23,.7);font-size:15px;color:var(--dim);z-index:5}
+  svg path{cursor:pointer;transition:opacity .08s}
+  .center-label{pointer-events:none}
+  .empty{color:var(--dim)}
+  select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 8px;border-radius:8px;font-size:13px;cursor:pointer}
+  select:hover{border-color:var(--accent)}
+  label.ctl{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:12px;margin-left:4px}
+  #legend{position:absolute;bottom:11px;right:14px;display:none;align-items:center;gap:8px;color:var(--dim);font-size:11px;background:rgba(23,28,38,.78);padding:5px 9px;border-radius:8px}
+  #legend .grad{width:130px;height:9px;border-radius:5px;border:1px solid var(--line)}
+  svg{width:100%;height:100%;min-height:340px}
+  header{flex-wrap:wrap}
+  header input{min-width:180px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.is-busy{cursor:progress}
+  button.is-busy::before{content:'';display:inline-block;width:10px;height:10px;margin-right:6px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-1px;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .chip{border:0;background:transparent}
+  #chart{padding:48px 10px 64px;min-height:430px}
+  #status{right:14px;max-width:calc(100% - 28px)}
+  #legend{bottom:42px}
+  #notice{padding:9px 14px;background:#382b18;color:#ffd99b;display:none;white-space:pre-wrap}
+  #notice button{margin-left:12px}
+  #scanProgress{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;background:var(--panel2);color:var(--dim);font-size:12px}
+  #scanProgress[hidden]{display:none}
+  #scanProgressText{overflow-wrap:anywhere;min-width:0;flex:1}
+  #scanStateIcon{flex:none}
+  #scanProgress[data-state=done]{color:#88d7a2}
+  #scanProgress[data-state=waiting],#scanProgress[data-state=disconnected]{color:#ffd99b}
+  .row[aria-pressed=true]{background:var(--panel2);box-shadow:inset 2px 0 var(--accent)}
+  .row{width:100%;border:0;text-align:left;background:transparent;min-height:40px}
+  .row .nm{display:block}
+  .row .sz{flex:none;white-space:nowrap}
+  #crumbs .chip{max-width:100%;padding:0;color:var(--accent);overflow-wrap:anywhere;text-align:left}
+  #filter{width:100%;margin-bottom:8px;min-height:36px}
+  #paging{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:12px;color:var(--dim)}
+  #hover{position:absolute;top:40px;left:14px;right:14px;color:var(--dim);font-size:12px;pointer-events:none}
+  .overlay{flex-direction:column;gap:12px;text-align:center;padding:20px}
+  #progress{font-variant-numeric:tabular-nums}
+  #modeBadge{font-size:11px;color:var(--dim)}
+  .hint{font-size:12px;color:var(--dim);margin:0}
+  @media(max-width:850px){
+    main{flex-direction:column;overflow:auto}
+    #chart{flex:none;height:55vh;min-height:380px}
+    aside{width:100%;border-left:0;border-top:1px solid var(--line);overflow:visible}
+    header input{flex:1}
+    .chip{padding:4px 7px}
+  }
+  @media(prefers-reduced-motion:reduce){svg path{transition:none}button.is-busy::before{animation:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>Mac</b>Clean</div>
+  <input id="path" type="text" placeholder="/Users/you/Documents" spellcheck="false" aria-label="Folder to scan" autocomplete="off">
+  <button class="primary" id="scan">Scan</button>
+  <button id="refresh" title="Re-scan the current folder and all its subfolders from disk">↻ Refresh</button>
+  <label class="ctl">Color
+    <select id="colorMode" title="How to color the chart">
+      <option value="folder">Folder</option>
+      <option value="age">Age (last modified)</option>
+    </select>
+  </label>
+  <button type="button" class="chip" data-go="~">Home</button>
+  <button type="button" class="chip" data-go="~/Downloads">Downloads</button>
+  <button type="button" class="chip" data-go="~/Documents">Documents</button>
+  <button type="button" class="chip" data-go="~/Desktop">Desktop</button>
+  <button type="button" class="chip" data-go="~/Library/Caches">Caches</button>
+  <span id="modeBadge"></span>
+</header>
+<div id="notice" role="alert"><span id="noticeText"></span><button id="retry" hidden></button></div>
+<div id="scanProgress" hidden>
+  <span id="scanStateIcon" aria-hidden="true"></span>
+  <span id="scanProgressText" role="status" aria-live="polite"></span>
+  <button id="cancel" hidden>Cancel scan</button>
+</div>
+<main>
+  <div id="chart">
+    <nav id="crumbs" aria-label="Folder breadcrumbs"></nav>
+    <div id="hover" aria-live="off"></div>
+    <svg id="svg" role="group" aria-label="Disk usage chart; select an item or use the contents list"></svg>
+    <div id="status" role="status"></div>
+    <div id="legend"></div>
+    <div class="overlay" id="overlay" role="status">
+      <div id="progress">Enter a folder and press Scan.</div>
+    </div>
+  </div>
+  <aside>
+    <div class="card" id="selcard">
+      <div class="sel-name" id="selName">Nothing selected</div>
+      <div class="sel-path" id="selPath"></div>
+      <div class="sel-size" id="selSize"></div>
+      <div class="sel-meta" id="selMeta"></div>
+      <div class="actions">
+        <button id="zoomBtn" style="display:none">Open ↘</button>
+        <button id="finderBtn" style="display:none">Reveal in Finder</button>
+        <button class="danger" id="trashBtn" style="display:none">Move to Trash</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Contents (largest first)</h3>
+      <input id="filter" type="text" aria-label="Filter contents by name" placeholder="Find an item in this folder…" autocomplete="off">
+      <div class="list" id="list"><div class="empty">—</div></div>
+      <div id="paging"><button id="prev">Previous</button><span id="pageInfo"></span><button id="next">Next</button></div>
+    </div>
+    <p class="hint">Click a folder to open its chart. Click the center to go up. Shift-click a folder, or press Space, to select it for actions.</p>
+  </aside>
+</main>
+<script nonce="__CSP_NONCE__">
+const $ = s => document.querySelector(s);
+const svg = $('#svg');
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+let origin = '';        // originally scanned root path
+let viewRoot = null;    // node currently at center
+let viewPath = '';      // its path
+let selected = null;    // selected node
+let busy = false, activeJob = null, listOffset = 0, listVersion = 0, listTotal = 0;
+let previewing = false;
+let revealPending=false, cancelPending=false, scanRefresh=false, scanVersion=0;
+let latestJob=null, lastStatusAt=0;
+let navigating=false, navigationVersion=0, requestedViewPath='', nextPreviewAt=0;
+const PREVIEW_INTERVAL = 10000;
+let listItems = [];
+let arcs = [];          // laid-out arcs currently drawn
+const HOLE = 78, RINGS = 7;
+
+function fmt(n){
+  if(n < 1024) return n + ' B';
+  const u = ['KiB','MiB','GiB','TiB','PiB']; let i=-1; let v=n;
+  do { v/=1024; i++; } while(v>=1024 && i<u.length-1);
+  return (v>=100?v.toFixed(0):v>=10?v.toFixed(1):v.toFixed(2)) + ' ' + u[i];
+}
+function colorFor(hue, depth){
+  const light = Math.max(34, 64 - depth*6);
+  const sat = depth===0 ? 0 : 48;
+  return `hsl(${hue|0} ${sat}% ${light}%)`;
+}
+
+// ---- color modes -----------------------------------------------------------
+let colorMode = 'folder';           // 'folder' | 'age'
+let ageRange = {min:0, max:1};      // mtime range over the visible arcs
+
+function heat(hue, depth){
+  const light = Math.max(34, 50 - depth*2);
+  return `hsl(${hue|0} 60% ${light}%)`;
+}
+function ageHue(mtime){
+  if(!mtime) return null;
+  const {min,max} = ageRange;
+  const norm = max>min ? (mtime-min)/(max-min) : 1;  // 0 old … 1 recent
+  return 120*(1-norm);                                // old→green, recent→red
+}
+// Color for a node at a given ring depth under the active mode.
+function nodeColor(node, depth){
+  if(node.other) return 'hsl(220 6% 34%)';
+  if(colorMode==='age'){ const h = ageHue(node.mtime); return h==null ? 'hsl(0 0% 32%)' : heat(h, depth); }
+  return null; // folder mode handled by caller (needs the laid-out hue)
+}
+
+function computeAgeRange(){
+  let min = Infinity, max = -Infinity;
+  for(const a of arcs){
+    if(a.center || a.node.other || !a.node.mtime) continue;
+    if(a.node.mtime < min) min = a.node.mtime;
+    if(a.node.mtime > max) max = a.node.mtime;
+  }
+  ageRange = (min===Infinity) ? {min:0, max:1} : {min, max};
+}
+
+function recolor(){ render(); renderList(); }
+
+function relTime(mtime){
+  if(!mtime) return '';
+  const d = Math.floor((Date.now()/1000 - mtime)/86400);
+  if(d <= 0) return 'today';
+  if(d === 1) return 'yesterday';
+  if(d < 30) return d + ' days ago';
+  if(d < 365){ const m = Math.round(d/30); return m + (m===1?' month':' months') + ' ago'; }
+  const y = (d/365); return (y<2 ? '1 year' : Math.round(y)+' years') + ' ago';
+}
+
+function updateLegend(){
+  const el = $('#legend');
+  if(colorMode==='folder'){ el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML = '<span>Old</span>'
+    + '<span class="grad" style="background:linear-gradient(to right,'
+    + 'hsl(120 60% 42%),hsl(60 60% 46%),hsl(0 60% 46%))"></span>'
+    + '<span>Recent</span>';
+}
+
+async function api(url, opts={}, timeoutMs=20000){
+  const controller = new AbortController();
+  const external=opts.signal, abort=()=>controller.abort();
+  external?.addEventListener('abort',abort,{once:true});
+  if(external?.aborted) controller.abort();
+  const timeout = setTimeout(abort, timeoutMs);
+  try{
+    const r = await fetch(url, {...opts, signal:controller.signal,
+      headers:{...opts.headers, 'X-MacClean-Token':TOKEN}});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || data.message || `Request failed (${r.status})`);
+    return data;
+  } catch(error){
+    if(error.name==='AbortError') throw new Error('The server took too long to respond. Check the terminal, then retry.');
+    if(error instanceof TypeError) throw new Error('Cannot reach MacClean. Check that it is still running in the terminal.');
+    throw error;
+  } finally{ clearTimeout(timeout); external?.removeEventListener('abort',abort); }
+}
+function post(url, body){
+  return api(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+}
+function notice(message='', retry=null){
+  $('#noticeText').textContent=message; $('#notice').style.display=message?'block':'none';
+  $('#retry').hidden=!retry;
+  if(retry){
+    $('#retry').textContent=retry.label || (retry.kind==='memory_limit'
+      ? `Retry with ${fmt(retry.options.max_memory_mb*1024*1024)} memory budget`
+      : `Retry with ${retry.options.max_entries.toLocaleString()}-item limit`);
+    $('#retry').onclick=retry.action || (()=>doScan(retry.path,retry.refresh,retry.options));
+  }
+}
+function syncControls(){
+  document.querySelectorAll('header button, #retry, #path, #filter').forEach(el=>el.disabled=busy);
+  $('#chart').setAttribute('aria-busy',String(busy));
+  $('#prev').disabled=busy || listOffset===0;
+  $('#next').disabled=busy || listOffset+listItems.length>=listTotal;
+  $('#refresh').disabled=busy || !viewPath;
+  $('#refresh').title=busy?'A scan or folder operation is still running. See its status above.':(viewPath?`Re-scan ${viewPath} and all its subfolders from disk`:'Scan a folder first.');
+  $('#finderBtn').disabled=revealPending || !selected?.path || selected?.other;
+  $('#zoomBtn').disabled=navigating || (busy && !previewing);
+  $('#trashBtn').disabled=busy || previewing || READ_ONLY || !selected?.trashable;
+  $('#cancel').disabled=cancelPending || !activeJob;
+  $('#cancel').textContent=cancelPending?'Stopping…':'Cancel scan';
+  $('#scan').classList.toggle('is-busy',busy && activeJob!==null && !scanRefresh);
+  $('#refresh').classList.toggle('is-busy',busy && activeJob!==null && scanRefresh);
+  $('#finderBtn').classList.toggle('is-busy',revealPending);
+}
+function setBusy(value){ busy=value; syncControls(); }
+function savedView(){
+  try{ return sessionStorage.getItem('macclean.viewPath') || ''; } catch{ return ''; }
+}
+function rememberView(){
+  try{ sessionStorage.setItem('macclean.viewPath',viewPath); } catch{}
+}
+function renderScanStatus(job,override=null){
+  if(!job || job.state==='idle') return;
+  const lag=job.state==='running'?(performance.now()-lastStatusAt)/1000:0;
+  const elapsed=(job.elapsed+lag).toFixed(1);
+  const idle=(job.idle_seconds || 0)+lag;
+  const state=override || (job.state==='done'?'done':job.state==='running'
+    ? (lag>5?'reconnecting':cancelPending?'stopping':idle>=10?'waiting':'running') : job.state);
+  const label={done:'Done',running:job.refresh?'Refreshing':'Scanning',waiting:'Waiting for filesystem',stopping:'Stopping — waiting for the current filesystem request',reconnecting:'Reconnecting to MacClean',finalizing:'Done — loading final chart',cancelled:'Cancelled',error:'Scan failed',disconnected:'Connection lost'}[state] || state;
+  const scope=job.refresh?` · ${job.path} (including subfolders)`:'';
+  const memory=job.resident_bytes==null?'':` · RAM ${fmt(job.resident_bytes)}`;
+  const waiting=state==='waiting' && job.waiting_paths?.length ? ` · ${job.waiting_paths[0]}`:'';
+  $('#scanProgress').hidden=false; $('#scanProgress').dataset.state=state;
+  $('#scanProgressText').textContent=`${label}${scope} · ${job.entries.toLocaleString()} items · ${fmt(job.bytes)} scanned · ${elapsed}s${memory}${waiting}`;
+  $('#scanStateIcon').textContent=state==='done'?'✓':state==='waiting'?'…':'';
+}
+function receiveJob(job){ latestJob=job; lastStatusAt=performance.now(); renderScanStatus(job); }
+function waitForPoll(){
+  return new Promise(resolve=>{
+    let timer;
+    const finish=()=>{ clearTimeout(timer); window.removeEventListener('focus',finish); document.removeEventListener('visibilitychange',visible); resolve(); };
+    const visible=()=>{ if(!document.hidden) finish(); };
+    window.addEventListener('focus',finish,{once:true}); document.addEventListener('visibilitychange',visible);
+    timer=setTimeout(finish,1000);
+  });
+}
+async function doScan(path, refresh=false, limits={}, resumeJob=null, resumeFocus=''){
+  if(busy) return;
+  const previousRoot=viewRoot, previousOrigin=origin, run=++scanVersion;
+  let completed=false, job=null, previewInFlight=false, failures=0, phase='running';
+  const previewAbort=new AbortController();
+  scanRefresh=refresh; cancelPending=false;
+  nextPreviewAt=resumeJob?0:performance.now()+PREVIEW_INTERVAL;
+  notice(); setBusy(true); overlay((refresh?'Refreshing ':'Scanning ') + path + ' …');
+  $('#scanProgress').hidden=false; $('#scanProgress').dataset.state='running';
+  $('#scanStateIcon').textContent='';
+  $('#scanProgressText').textContent=resumeJob?'Reconnecting to the existing scan …':'Starting scan …';
+  const heartbeat=setInterval(()=>{
+    if(run===scanVersion && phase==='running' && latestJob?.id===activeJob) renderScanStatus(latestJob);
+  },1000);
+  try{
+    job=resumeJob || await post('/api/scan',{...limits,path,refresh});
+    activeJob=job.id; $('#cancel').hidden=job.state!=='running';
+    cancelPending=!!job.cancel_requested; syncControls(); receiveJob(job);
+    while(job.state==='running'){
+      if(!previewing) overlay(`Scanning ${path} …\n${job.entries.toLocaleString()} items · ${fmt(job.bytes)} scanned\nThe first live chart appears after 10 seconds.`);
+      if(!previewInFlight && !navigating && performance.now()>=nextPreviewAt){
+        const focusPath=previewing?viewPath:(resumeFocus || job.path), version=navigationVersion;
+        previewInFlight=true; nextPreviewAt=performance.now()+PREVIEW_INTERVAL;
+        // Preview requests never block the status heartbeat or completion check.
+        api('/api/preview?'+new URLSearchParams({id:activeJob,path:focusPath}),{signal:previewAbort.signal})
+          .then(preview=>{
+            if(run===scanVersion && phase==='running' && preview.root && preview.state==='running' && version===navigationVersion){
+              origin=refresh?previousOrigin:job.path; showPreview(preview.root);
+            }
+          })
+          .catch(error=>{
+            if(!previewAbort.signal.aborted && run===scanVersion && phase==='running'){
+              resumeFocus=''; notice('Chart preview unavailable: '+error.message+' The scan status is still being monitored.');
+            }
+          })
+          .finally(()=>{ previewInFlight=false; });
+      }
+      await waitForPoll();
+      try{
+        job=await api('/api/status?id='+encodeURIComponent(activeJob),{},5000);
+        failures=0; cancelPending=!!job.cancel_requested; receiveJob(job); syncControls();
+      } catch(error){
+        failures++; renderScanStatus(latestJob,'reconnecting');
+        if(failures>=3) throw error;
+      }
+    }
+    receiveJob(job); phase='terminal'; previewAbort.abort();
+    if(job.state==='done'){
+      completed=true; renderScanStatus(job,'finalizing');
+      const focusPath=previewing?(requestedViewPath || viewPath):(resumeFocus || job.path);
+      navigationVersion++; navigating=false;
+      let d;
+      try{ d=await api('/api/subtree?path='+encodeURIComponent(focusPath)); }
+      catch(error){
+        if(focusPath===job.path) throw error;
+        d=await api('/api/subtree?path='+encodeURIComponent(job.path));
+        notice('The focused folder could not be read. Showing the scanned folder.');
+      }
+      origin=refresh?previousOrigin:job.origin; setRoot(d.root); renderScanStatus(job);
+    } else {
+      notice(job.error || 'Scan cancelled.',job.retry
+        ? {path:job.path,refresh:job.refresh,kind:job.limit_kind,options:job.retry} : null);
+    }
+  } catch(error){
+    phase='terminal';
+    if(job?.state==='running'){
+      renderScanStatus(latestJob,'disconnected');
+      notice(error.message+' Reconnect to check the existing scan.',{label:'Reconnect',action:bootSession});
+    } else {
+      if(job?.state==='done') renderScanStatus(job);
+      notice(job?.state==='done'?'Scan is done, but the final chart could not load. '+error.message:error.message);
+    }
+  } finally{
+    clearInterval(heartbeat); previewAbort.abort();
+    navigationVersion++; navigating=false;
+    try{
+      if(previewing && !completed){
+        previewing=false; origin=previousOrigin;
+        if(previousRoot) setRoot(previousRoot); else clearView();
+      }
+    } finally{
+      activeJob=null; cancelPending=false; scanRefresh=false; $('#cancel').hidden=true;
+      hideOverlay(); setBusy(false);
+    }
+  }
+}
+async function navigate(path){
+  const live=previewing && activeJob!==null;
+  if((busy && !live) || (path===viewPath && !navigating)) return;
+  const version=++navigationVersion;
+  navigating=true; requestedViewPath=path;
+  if(!live) setBusy(true);
+  notice(); overlay('Loading folder …');
+  try{
+    if(live){
+      const d=await api('/api/preview?'+new URLSearchParams({id:activeJob,path}));
+      if(version!==navigationVersion) return;
+      if(d.root) showPreview(d.root);
+      nextPreviewAt=performance.now()+PREVIEW_INTERVAL;
+    } else {
+      const d=await api('/api/subtree?path='+encodeURIComponent(path));
+      if(version!==navigationVersion) return;
+      setRoot(d.root);
+    }
+  } catch(error){
+    if(version===navigationVersion){ requestedViewPath=viewPath; notice(error.message); }
+  } finally{
+    if(version===navigationVersion){ navigating=false; hideOverlay(); if(!live) setBusy(false); }
+  }
+}
+
+function selectItem(node,arc=null){
+  selected=node; refreshSelection(node,arc); markList();
+}
+function openItem(node,selectOnly=false,arc=null){
+  if(busy && !previewing) return;
+  selectItem(node,arc);
+  if(!selectOnly && node.dir && !node.other && node.path!==viewPath) navigate(node.path);
+}
+
+function setRoot(node){
+  previewing=false;
+  viewRoot = node; viewPath = node.path;
+  requestedViewPath=viewPath; $('#path').value=viewPath; rememberView();
+  selected = node; $('#hover').textContent='';
+  render();
+  refreshSelection(node, null);
+  $('#filter').value=''; listOffset=0; renderList();
+  renderCrumbs();
+  let st = fmt(node.size) + ' on disk (allocated est.)';
+  const note = 'Allocated size estimate (st_blocks). Hard links and APFS '
+    + 'clones/shared extents are not deduped, so freed space may be less.';
+  if(node.skipped){
+    st += '  ·  ⚠ ' + node.skipped + " item" + (node.skipped===1?'':'s')
+        + " unavailable or excluded — totals may be low";
+    $('#status').title = note + '\n\nOmitted items:\n' + (node.skipped_sample||[]).join('\n')
+        + (node.skipped > (node.skipped_sample||[]).length ? '\n…' : '');
+  } else {
+    $('#status').title = note;
+  }
+  $('#status').textContent = st;
+}
+
+function showPreview(node){
+  const selectedPath=previewing?selected?.path:null;
+  previewing=true; viewRoot=node; viewPath=node.path;
+  requestedViewPath=viewPath; $('#path').value=viewPath; rememberView();
+  selected=node.children.find(child=>child.path===selectedPath) || node;
+  render(); refreshSelection(selected,null); renderList(); renderCrumbs(); hideOverlay();
+  $('#hover').textContent='';
+  $('#status').textContent=`Partial scan · ${node.entries.toLocaleString()} items visited · sizes will grow as scanning continues`;
+  $('#status').title='Read-only preview of the current folder. Click folders to explore; updates keep this folder in view. Trash becomes available when the scan completes.';
+}
+function clearView(){
+  viewRoot=null; viewPath=''; requestedViewPath=''; selected=null; listItems=[]; listTotal=0; listVersion++;
+  svg.replaceChildren(); $('#crumbs').replaceChildren(); $('#list').replaceChildren();
+  $('#legend').style.display='none'; $('#hover').textContent='';
+  $('#selName').textContent='No completed scan'; $('#selPath').textContent='';
+  $('#selSize').textContent=''; $('#selMeta').textContent=''; $('#pageInfo').textContent='';
+  $('#status').textContent='Choose a folder and press Scan.';
+  $('#zoomBtn').style.display='none'; $('#finderBtn').style.display='none'; $('#trashBtn').style.display='none';
+}
+
+// ---- layout ----------------------------------------------------------------
+function layout(){
+  arcs = [];
+  const W = svg.clientWidth, H = svg.clientHeight;
+  const cx = W/2, cy = H/2;
+  const maxR = Math.max(60, Math.min(W, H)/2 - 24);
+  const hole = Math.min(HOLE, maxR * .35);
+  function visibleDepth(node, depth=0){
+    if(depth>=RINGS || !node.children?.length) return depth;
+    return Math.max(depth, ...node.children.map(child=>visibleDepth(child,depth+1)));
+  }
+  const levels=Math.max(1,visibleDepth(viewRoot));
+  const rw = (maxR - hole) / levels;
+
+  // center disk
+  arcs.push({node:viewRoot, depth:0, a0:0, a1:Math.PI*2, r0:0, r1:hole,
+             cx, cy, hue:0, center:true});
+
+  function recurse(node, depth, a0, a1, hue){
+    if(depth >= levels) return;
+    const kids = node.children;
+    if(!kids || !kids.length) return;
+    const span = a1 - a0;
+    const total = node.size || kids.reduce((s,c)=>s+c.size,0) || 1;
+    let acc = a0;
+    kids.forEach((c, i) => {
+      const frac = c.size / total;
+      const ca0 = acc, ca1 = acc + span*frac;
+      acc = ca1;
+      if(ca1 - ca0 < 0.0015) return; // too thin to see/click
+      const h = depth===0 ? (i/kids.length*360) : hue;
+      const r0 = hole + depth*rw, r1 = hole + (depth+1)*rw;
+      arcs.push({node:c, depth:depth+1, a0:ca0, a1:ca1, r0, r1, cx, cy, hue:h});
+      if(c.dir && !c.other) recurse(c, depth+1, ca0, ca1, h);
+    });
+  }
+  recurse(viewRoot, 0, 0, Math.PI*2, 0);
+}
+
+function arcPath(a){
+  const {cx,cy,r0,r1} = a;
+  // angles measured clockwise from top (-90deg)
+  const a0 = a.a0 - Math.PI/2, a1 = a.a1 - Math.PI/2;
+  const x = (r,ang)=>cx + r*Math.cos(ang);
+  const y = (r,ang)=>cy + r*Math.sin(ang);
+  const large = (a.a1 - a.a0) > Math.PI ? 1 : 0;
+  if(r0 <= 0){ // full disk / pie
+    if(a.a1 - a.a0 >= Math.PI*2 - 1e-6){
+      return `M ${cx-r1} ${cy} a ${r1} ${r1} 0 1 0 ${r1*2} 0 a ${r1} ${r1} 0 1 0 ${-r1*2} 0`;
+    }
+    return `M ${cx} ${cy} L ${x(r1,a0)} ${y(r1,a0)} A ${r1} ${r1} 0 ${large} 1 ${x(r1,a1)} ${y(r1,a1)} Z`;
+  }
+  if(a.a1-a.a0>=Math.PI*2-1e-6){
+    // SVG cannot draw a full circle with one arc whose endpoints coincide.
+    return `M ${cx-r1} ${cy} A ${r1} ${r1} 0 1 1 ${cx+r1} ${cy} A ${r1} ${r1} 0 1 1 ${cx-r1} ${cy} Z `
+      + `M ${cx-r0} ${cy} A ${r0} ${r0} 0 1 0 ${cx+r0} ${cy} A ${r0} ${r0} 0 1 0 ${cx-r0} ${cy} Z`;
+  }
+  return `M ${x(r0,a0)} ${y(r0,a0)} L ${x(r1,a0)} ${y(r1,a0)} `
+       + `A ${r1} ${r1} 0 ${large} 1 ${x(r1,a1)} ${y(r1,a1)} `
+       + `L ${x(r0,a1)} ${y(r0,a1)} `
+       + `A ${r0} ${r0} 0 ${large} 0 ${x(r0,a0)} ${y(r0,a0)} Z`;
+}
+
+function render(){
+  layout();
+  if(colorMode==='age') computeAgeRange();
+  updateLegend();
+  const W = svg.clientWidth, H = svg.clientHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+  arcs.forEach(a => {
+    const p = document.createElementNS(SVGNS, 'path');
+    p.setAttribute('d', arcPath(a));
+    const fill = a.center ? 'var(--panel2)'
+               : (nodeColor(a.node, a.depth) || colorFor(a.hue, a.depth));
+    p.setAttribute('fill', fill);
+    p.setAttribute('stroke', 'var(--bg)');
+    p.setAttribute('stroke-width', a.center ? '0' : '1');
+    p._a = a;
+    p.addEventListener('mouseenter', () => { $('#hover').textContent=a.node.name+' · '+fmt(a.node.size); hi(a); });
+    p.addEventListener('mouseleave', () => { $('#hover').textContent=''; unhi(); });
+    const title=document.createElementNS(SVGNS,'title'); title.textContent=a.node.name+' · '+fmt(a.node.size); p.appendChild(title);
+    if(a.depth<=1){
+      p.setAttribute('tabindex','0'); p.setAttribute('role','button');
+      p.setAttribute('aria-label',a.node.name+' · '+fmt(a.node.size));
+      p.addEventListener('keydown',ev=>{
+        if(ev.key==='Enter' || ev.key===' '){
+          ev.preventDefault();
+          if(a.center && ev.key==='Enter') goUp();
+          else openItem(a.node,ev.key===' ' || ev.shiftKey,a);
+        }
+      });
+    }
+    p.addEventListener('click', ev => {
+      if(a.center && !ev.shiftKey){ goUp(); return; }
+      openItem(a.node,ev.shiftKey,a);
+    });
+    p.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      if(a.center){ reveal(viewRoot); return; }
+      selected = a.node; refreshSelection(a.node, a); reveal(a.node);
+    });
+    svg.appendChild(p);
+  });
+
+  // center label
+  const cx = W/2, cy = H/2;
+  const t1 = document.createElementNS(SVGNS,'text');
+  t1.setAttribute('x',cx); t1.setAttribute('y',cy-6);
+  t1.setAttribute('text-anchor','middle'); t1.setAttribute('class','center-label');
+  t1.setAttribute('fill','var(--txt)'); t1.setAttribute('font-size','15'); t1.setAttribute('font-weight','600');
+  t1.textContent = trim(viewRoot.name, 18);
+  const t2 = document.createElementNS(SVGNS,'text');
+  t2.setAttribute('x',cx); t2.setAttribute('y',cy+14);
+  t2.setAttribute('text-anchor','middle'); t2.setAttribute('class','center-label');
+  t2.setAttribute('fill','var(--dim)'); t2.setAttribute('font-size','12');
+  t2.textContent = fmt(viewRoot.size) + (origin!==viewPath ? '  ·  ↑ up' : '');
+  svg.appendChild(t1); svg.appendChild(t2);
+}
+
+function hi(a){
+  for(const p of svg.querySelectorAll('path')){
+    if(p._a.center) continue;
+    p.style.opacity = (p._a === a) ? '1' : '0.32';
+  }
+}
+function unhi(){ for(const p of svg.querySelectorAll('path')) p.style.opacity='1'; }
+
+function trim(s,n){ return s.length>n ? s.slice(0,n-1)+'…' : s; }
+
+function goUp(){
+  if(viewPath === origin) return;
+  let parent = viewPath.replace(/\/[^/]+$/, '');
+  if(!parent || !(parent===origin || parent.startsWith(origin.replace(/\/$/,'')+'/'))) parent=origin;
+  navigate(parent);
+}
+
+// ---- selection panel -------------------------------------------------------
+function refreshSelection(node, arc){
+  $('#selName').textContent = node.name;
+  $('#selPath').textContent = node.path || '';
+  $('#selSize').textContent = fmt(node.size);
+  const pct = viewRoot.size ? (node.size/viewRoot.size*100) : 0;
+  let meta = (node===viewRoot ? 'current folder' :
+      `${pct.toFixed(1)}% of ${trim(viewRoot.name,20)}  ·  ${node.dir?'folder':'file'}`);
+  if(node.preview) meta+=' · partial scan'+(node.scanning?' · scanning this folder':'');
+  if(!node.other && node.mtime) meta += `  ·  modified ${relTime(node.mtime)}`;
+  $('#selMeta').textContent = meta;
+  const zb = $('#zoomBtn'), tb = $('#trashBtn'), fb = $('#finderBtn');
+  if(node.dir && !node.other && node!==viewRoot){
+    zb.style.display=''; zb.onclick=()=>navigate(node.path);
+  } else zb.style.display='none';
+  if(node.path && !node.other){
+    fb.style.display=''; fb.onclick=()=>reveal(node);
+  } else fb.style.display='none';
+  // Never offer to trash the centered/scan-root folder itself (also enforced
+  // server-side). Only real items strictly inside the scanned tree.
+  if(!READ_ONLY && node.trashable && node.path && !node.other && node!==viewRoot && node.path!==origin){
+    tb.style.display=''; tb.onclick=()=>trash(node);
+  } else tb.style.display='none';
+  syncControls();
+}
+
+async function reveal(node){
+  if(revealPending || !node?.path || node.other) return;
+  revealPending=true; notice(); syncControls();
+  try{ await post('/api/reveal',{path:node.path}); notice('Revealed in Finder.'); }
+  catch(error){ notice(error.message); }
+  finally{ revealPending=false; syncControls(); }
+}
+async function trash(node){
+  if(busy || !node?.path || READ_ONLY) return;
+  if(!confirm(`Move to Trash?\n\n${node.path}\n${fmt(node.size)} (allocated estimate)\n\nRestore this item from Finder’s Trash if needed.`)) return;
+  setBusy(true); notice();
+  try{
+    const r=await post('/api/trash', {path:node.path, revision:node.revision});
+    const d=await api('/api/subtree?path='+encodeURIComponent(viewPath));
+    setRoot(d.root); notice(r.message);
+  } catch(error){ notice(error.message); }
+  finally{ setBusy(false); }
+}
+
+// ---- contents list ---------------------------------------------------------
+let listRows = [];
+async function renderList(){
+  if(!viewRoot) return;
+  const version=++listVersion, path=viewPath, query=$('#filter').value;
+  if(previewing){
+    const items=viewRoot.children || [];
+    paintList(items,items.length,'');
+    return;
+  }
+  try{
+    const d=await api('/api/children?'+new URLSearchParams({path, q:query, offset:listOffset, limit:100}));
+    if(version!==listVersion || path!==viewPath) return;
+    paintList(d.items,d.total,query);
+  } catch(error){ if(version===listVersion) notice(error.message); }
+}
+function paintList(items,total,query){
+  listItems=items; listTotal=total;
+    const el=$('#list'); el.replaceChildren(); listRows=[];
+    if(!listItems.length){
+      const empty=document.createElement('div'); empty.className='empty';
+      empty.textContent=previewing?'No contents visited yet. The chart will update as this folder is scanned.':(query?'No matching items.':'This folder is empty.'); el.appendChild(empty);
+    }
+    const max=listItems[0]?.size || 1;
+    listItems.forEach((c,i)=>{
+      const sw=nodeColor(c,1) || colorFor(i/Math.max(1,listItems.length)*360,1);
+      const row=document.createElement('button'); row.type='button'; row.className='row';
+      row.title=c.path; row.setAttribute('aria-label',c.name+' · '+fmt(c.size));
+      row.innerHTML=`<span class="sw" style="background:${sw}"></span>
+        <span class="nmwrap"><span class="nm">${escapeHtml(c.name)}${c.dir?' /':''}</span>
+        <span class="bar" style="display:block;width:${Math.max(1,c.size/max*100)}%"></span></span>
+        <span class="sz">${fmt(c.size)}</span>`;
+      row.addEventListener('click',ev=>openItem(c,ev.shiftKey));
+      row.addEventListener('keydown',ev=>{
+        if(ev.key===' '){ ev.preventDefault(); if(!busy || previewing) selectItem(c); }
+      });
+      row.addEventListener('contextmenu',ev=>{ ev.preventDefault(); reveal(c); });
+      el.appendChild(row); listRows.push({el:row,node:c});
+    });
+    $('#pageInfo').textContent=previewing?'Largest scanned items so far':(total ? `${listOffset+1}–${listOffset+items.length} of ${total.toLocaleString()}` : '0 items');
+    $('#prev').disabled=busy || listOffset===0;
+    $('#next').disabled=busy || listOffset+items.length>=total;
+    markList();
+}
+function markList(){
+  for(const row of listRows) row.el.setAttribute('aria-pressed',String(row.node.path===selected?.path));
+}
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ---- breadcrumbs -----------------------------------------------------------
+function renderCrumbs(){
+  const el = $('#crumbs'); el.innerHTML='';
+  const rel = viewPath.startsWith(origin) ? viewPath.slice(origin.length) : '';
+  const parts = rel.split('/').filter(Boolean);
+  const mk = (label, path) => {
+    const a = document.createElement('button'); a.className='chip'; a.textContent=label;
+    a.onclick=()=>navigate(path); return a;
+  };
+  el.appendChild(mk(origin, origin));
+  let cur = origin;
+  parts.forEach(p=>{
+    cur = cur.replace(/\/$/,'') + '/' + p;
+    const sep=document.createElement('span'); sep.className='sep'; sep.textContent=' / ';
+    el.appendChild(sep); el.appendChild(mk(p, cur));
+  });
+}
+
+// ---- overlay / events ------------------------------------------------------
+function overlay(msg){ $('#progress').textContent=msg; $('#overlay').style.display='flex'; }
+function hideOverlay(){ $('#overlay').style.display='none'; }
+
+$('#scan').addEventListener('click',()=>{ const v=$('#path').value; if(v) doScan(v); });
+$('#refresh').addEventListener('click',()=>{ if(viewPath) doScan(viewPath,true); });
+$('#path').addEventListener('keydown',e=>{ if(e.key==='Enter' && e.currentTarget.value) doScan(e.currentTarget.value); });
+$('#cancel').addEventListener('click',async()=>{
+  if(!activeJob) return;
+  cancelPending=true; syncControls();
+  if(latestJob) renderScanStatus(latestJob,'stopping');
+  try{ await post('/api/cancel',{id:activeJob}); }
+  catch(error){ cancelPending=false; notice(error.message); syncControls(); }
+});
+$('#colorMode').addEventListener('change',e=>{ colorMode=e.target.value; if(viewRoot) recolor(); });
+document.querySelectorAll('.chip[data-go]').forEach(c=>c.addEventListener('click',()=>{
+  $('#path').value=c.dataset.go; doScan(c.dataset.go);
+}));
+let filterTimer;
+$('#filter').addEventListener('input',()=>{
+  // Invalidate pending responses immediately, before debounce fires.
+  listVersion++; clearTimeout(filterTimer); listOffset=0;
+  filterTimer=setTimeout(renderList,180);
+});
+$('#prev').addEventListener('click',()=>{ listOffset=Math.max(0,listOffset-100); renderList(); });
+$('#next').addEventListener('click',()=>{ listOffset+=100; renderList(); });
+let resizeFrame;
+new ResizeObserver(()=>{
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame=requestAnimationFrame(()=>{ if(viewRoot) render(); });
+}).observe($('#chart'));
+
+const START=__START_PATH__;
+const TOKEN=__TOKEN__;
+const READ_ONLY=__READ_ONLY__;
+$('#path').value=START;
+$('#modeBadge').textContent=READ_ONLY?'Read-only':'Trash is recoverable';
+async function bootSession(){
+  if(busy) return;
+  setBusy(true); overlay('Connecting to MacClean …');
+  try{
+    const job=await api('/api/status',{},5000);
+    const cached=job.cached_origin;
+    const desiredFocus=savedView();
+    let focus=desiredFocus;
+    if(cached){
+      origin=cached;
+      if(!focus || !(focus===cached || focus.startsWith(cached.replace(/\/$/,'')+'/'))) focus=cached;
+      try{ setRoot((await api('/api/subtree?path='+encodeURIComponent(focus))).root); }
+      catch{ setRoot((await api('/api/subtree?path='+encodeURIComponent(cached))).root); }
+    }
+    hideOverlay(); setBusy(false);
+    if(job.state==='idle') return await doScan(START);
+    if(job.state==='running'){
+      const candidate=desiredFocus;
+      const liveFocus=candidate && (candidate===job.path || candidate.startsWith(job.path.replace(/\/$/,'')+'/'))?candidate:'';
+      return await doScan(job.path,job.refresh,{},job,liveFocus);
+    }
+    receiveJob(job);
+    if(job.state!=='done') notice(job.error || 'The previous scan did not complete.',job.retry
+      ? {path:job.path,refresh:job.refresh,kind:job.limit_kind,options:job.retry}:null);
+  } catch(error){
+    notice(error.message,{label:'Reconnect',action:bootSession});
+  } finally{ hideOverlay(); if(!activeJob) setBusy(false); }
+}
+bootSession();
+</script>
+</body>
+</html>

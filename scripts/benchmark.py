@@ -10,7 +10,7 @@ import tempfile
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import macclean
+from diskclean import scanner
 
 
 def measure(module, root, rounds):
@@ -26,20 +26,20 @@ def measure(module, root, rounds):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--baseline", type=Path, help="prior macclean.py to compare")
+    parser.add_argument("--baseline", type=Path, help="prior scanner module to compare")
     parser.add_argument("--folders", type=int, default=64)
     parser.add_argument("--files", type=int, default=200, help="files per folder")
     parser.add_argument("--rounds", type=int, default=5)
     args = parser.parse_args()
     if min(args.folders, args.files, args.rounds) < 1:
         parser.error("counts must be positive")
-    modules = [("current", macclean)]
+    modules = [("current", scanner)]
     if args.baseline:
-        spec = importlib.util.spec_from_file_location("macclean_baseline", args.baseline)
+        spec = importlib.util.spec_from_file_location("diskclean_baseline", args.baseline)
         baseline = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(baseline)
         modules.insert(0, ("baseline", baseline))
-    with tempfile.TemporaryDirectory(prefix="macclean-benchmark-") as root:
+    with tempfile.TemporaryDirectory(prefix="diskclean-benchmark-") as root:
         for d in range(args.folders):
             folder = Path(root) / f"directory-{d}"
             folder.mkdir()

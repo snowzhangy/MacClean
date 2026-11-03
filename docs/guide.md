@@ -1,30 +1,29 @@
-# MacClean
+# DiskClean guide
 
-An offline disk usage analyzer for macOS. Explore a sunburst chart, find large
-folders, and move selected items to Finder’s Trash. Python standard library
+An offline disk usage analyzer for macOS, Windows and Linux. Explore a sunburst chart, find large folders, and move selected items to the Trash or Recycle Bin. Python standard library
 only: no packages, build step, account, or internet connection.
 
 ## Start
 
-Requires **Python 3.10+**. Keep `macclean.py` and `macclean.html` together.
+Requires **Python 3.10+**. Run `cleaner.py` (or `winclean.py` on Windows) from the repository root so the `diskclean` package is importable.
 
 ```sh
-python3 macclean.py ~/Downloads
+python3 cleaner.py ~/Downloads
 ```
 
 The browser opens automatically. The server listens only on `127.0.0.1:8765`.
 Stop it with **Ctrl+C** in the terminal. Run as your normal user, without sudo.
 
 ```sh
-python3 macclean.py                       # start with your home folder
-python3 macclean.py ~/Downloads --read-only  # inspect with Trash disabled
-python3 macclean.py . --port 0             # choose an available port
-python3 macclean.py . --no-open            # print the URL without opening it
-python3 macclean.py ~ --exclude ~/Library/CloudStorage/YourDrive/.Trash
-python3 macclean.py --help
+python3 cleaner.py                       # start with your home folder
+python3 cleaner.py ~/Downloads --read-only  # inspect with Trash disabled
+python3 cleaner.py . --port 0             # choose an available port
+python3 cleaner.py . --no-open            # print the URL without opening it
+python3 cleaner.py ~ --exclude ~/Library/CloudStorage/YourDrive/.Trash
+python3 cleaner.py --help
 ```
 
-The scanner and read-only UI also work on Linux. Finder and Trash require macOS.
+On Windows use `python winclean.py` with the same options; deletion goes to the Recycle Bin.
 
 ## Use
 
@@ -50,11 +49,11 @@ The scanner and read-only UI also work on Linux. Finder and Trash require macOS.
   modification times, and incomplete-scan counts. Entering a folder also
   updates the path field, so the next **Scan** targets that folder. Typing a
   different path explicitly changes the next scan target.
-- **Reveal in Finder** selects the item without launching its contents.
+- **Reveal in Finder (macOS) or Explorer (Windows)** selects the item without launching its contents.
   It remains available during a background scan and shows its own short
   progress indicator while the native request runs.
-- **Move to Trash** asks for confirmation. Restore an item from Finder’s Trash
-  if needed. MacClean never permanently deletes files or empties Trash.
+- **Move to Trash** asks for confirmation. Restore an item from Finder/Explorer’s Trash
+  if needed. DiskClean never permanently deletes files or empties the Trash.
 
 The contents list and controls support keyboard navigation. The layout adapts
 to narrow windows. Folder colors show grouping; Age colors show modification
@@ -85,10 +84,10 @@ Scans are live observations, not filesystem snapshots. Items can change while
 being scanned. Unreadable or disappearing items are counted in the status bar,
 with sample paths in its tooltip. An unreadable root produces an explicit error.
 If macOS privacy settings prevent access, grant your terminal access to the
-specific folders you need, then refresh. MacClean does not bypass permissions.
+specific folders you need, then refresh. DiskClean does not bypass permissions.
 
 Cloud-provider directories can stall inside a macOS directory read, even when
-their contents look local in Finder. Use repeatable `--exclude FOLDER` options
+their contents look local in Finder/Explorer. Use repeatable `--exclude FOLDER` options
 to skip a known stalled folder and its descendants. Exclusions are disclosed
 in the omitted-item count and tooltip, and their sizes are excluded from totals.
 Cancellation is cooperative and cannot interrupt an already blocked kernel
@@ -121,8 +120,8 @@ If a budget is reached, previous completed results remain available and the
 browser offers **Retry** with a higher budget. You can also configure startup:
 
 ```sh
-python3 macclean.py ~ --max-memory-mb 8192   # 8 GiB process memory budget
-python3 macclean.py ~ --max-entries 2000000  # optional explicit entry cap
+python3 cleaner.py ~ --max-memory-mb 8192   # 8 GiB process memory budget
+python3 cleaner.py ~ --max-entries 2000000  # optional explicit entry cap
 ```
 
 `--max-entries 0` disables the entry cap while retaining the memory safeguard.
@@ -140,7 +139,7 @@ Reproduce a temporary-data benchmark (no user files are scanned or changed):
 ```sh
 python3 scripts/benchmark.py
 # Optionally compare an older standalone version:
-python3 scripts/benchmark.py --baseline /path/to/old/macclean.py
+python3 scripts/benchmark.py --baseline /path/to/old/cleaner.py
 python3 scripts/benchmark-preview.py  # isolate preview bookkeeping/encoding cost
 ```
 
@@ -160,7 +159,7 @@ python3 scripts/benchmark-preview.py  # isolate preview bookkeeping/encoding cos
 - Prefixes are opened without following symlinks; the final symlink is treated
   as the selected link. Trash uses macOS `NSFileManager`, without a permanent
   deletion fallback. A timeout reports an unknown outcome and asks you to check
-  Finder before retrying.
+  Finder/Explorer before retrying.
 
 This protects normal local use, not a machine with malicious processes running
 as your user. The final identity check and Foundation’s path-based Trash call
@@ -171,7 +170,7 @@ Do not expose this local server through a proxy or tunnel.
 ## Verify
 
 ```sh
-python3 -m unittest -v test_macclean
+python3 -m unittest -v tests/test_diskclean.py
 ```
 
 Tests cover allocation, sparse files, deep trees, permissions, symlink swaps,
@@ -190,8 +189,8 @@ python3 scripts/native-trash-smoke.py
 An optional real Chromium smoke test needs Node 22+ and a browser binary,
 but no npm dependencies. It creates and removes its own temporary fixture,
 checks the browser workflow, and saves desktop/mobile screenshots in `/tmp`.
-It does not execute Trash or Finder actions.
-Finder requests use a simulated native result in the browser fixture server;
+It does not execute Trash or Finder/Explorer actions.
+Finder/Explorer requests use a simulated native result in the browser fixture server;
 unit tests verify the real `/usr/bin/open -R` command and timeout handling.
 
 ```sh

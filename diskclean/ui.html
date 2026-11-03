@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MacClean</title>
+<title>DiskClean</title>
 <style nonce="__CSP_NONCE__">
   :root{
     --bg:#0e1117; --panel:#171c26; --panel2:#1f2632; --line:#2a3340;
@@ -99,8 +99,8 @@
 </head>
 <body>
 <header>
-  <div class="logo"><b>Mac</b>Clean</div>
-  <input id="path" type="text" placeholder="/Users/you/Documents" spellcheck="false" aria-label="Folder to scan" autocomplete="off">
+  <div class="logo"><b>Disk</b>Clean</div>
+  <input id="path" type="text" placeholder="__HOME__" spellcheck="false" aria-label="Folder to scan" autocomplete="off">
   <button class="primary" id="scan">Scan</button>
   <button id="refresh" title="Re-scan the current folder and all its subfolders from disk">↻ Refresh</button>
   <label class="ctl">Color
@@ -113,7 +113,7 @@
   <button type="button" class="chip" data-go="~/Downloads">Downloads</button>
   <button type="button" class="chip" data-go="~/Documents">Documents</button>
   <button type="button" class="chip" data-go="~/Desktop">Desktop</button>
-  <button type="button" class="chip" data-go="~/Library/Caches">Caches</button>
+  <button type="button" class="chip" data-go="__CACHE_PATH__">Caches</button>
   <span id="modeBadge"></span>
 </header>
 <div id="notice" role="alert"><span id="noticeText"></span><button id="retry" hidden></button></div>
@@ -141,8 +141,8 @@
       <div class="sel-meta" id="selMeta"></div>
       <div class="actions">
         <button id="zoomBtn" style="display:none">Open ↘</button>
-        <button id="finderBtn" style="display:none">Reveal in Finder</button>
-        <button class="danger" id="trashBtn" style="display:none">Move to Trash</button>
+        <button id="finderBtn" style="display:none">Reveal in __FILE_MANAGER_TEXT__</button>
+        <button class="danger" id="trashBtn" style="display:none">Move to __TRASH_TEXT__</button>
       </div>
     </div>
     <div class="card">
@@ -246,13 +246,13 @@ async function api(url, opts={}, timeoutMs=20000){
   const timeout = setTimeout(abort, timeoutMs);
   try{
     const r = await fetch(url, {...opts, signal:controller.signal,
-      headers:{...opts.headers, 'X-MacClean-Token':TOKEN}});
+      headers:{...opts.headers, 'X-DiskClean-Token':TOKEN}});
     const data = await r.json();
     if(!r.ok) throw new Error(data.error || data.message || `Request failed (${r.status})`);
     return data;
   } catch(error){
     if(error.name==='AbortError') throw new Error('The server took too long to respond. Check the terminal, then retry.');
-    if(error instanceof TypeError) throw new Error('Cannot reach MacClean. Check that it is still running in the terminal.');
+    if(error instanceof TypeError) throw new Error('Cannot reach DiskClean. Check that it is still running in the terminal.');
     throw error;
   } finally{ clearTimeout(timeout); external?.removeEventListener('abort',abort); }
 }
@@ -299,7 +299,7 @@ function renderScanStatus(job,override=null){
   const idle=(job.idle_seconds || 0)+lag;
   const state=override || (job.state==='done'?'done':job.state==='running'
     ? (lag>5?'reconnecting':cancelPending?'stopping':idle>=10?'waiting':'running') : job.state);
-  const label={done:'Done',running:job.refresh?'Refreshing':'Scanning',waiting:'Waiting for filesystem',stopping:'Stopping — waiting for the current filesystem request',reconnecting:'Reconnecting to MacClean',finalizing:'Done — loading final chart',cancelled:'Cancelled',error:'Scan failed',disconnected:'Connection lost'}[state] || state;
+  const label={done:'Done',running:job.refresh?'Refreshing':'Scanning',waiting:'Waiting for filesystem',stopping:'Stopping — waiting for the current filesystem request',reconnecting:'Reconnecting to DiskClean',finalizing:'Done — loading final chart',cancelled:'Cancelled',error:'Scan failed',disconnected:'Connection lost'}[state] || state;
   const scope=job.refresh?` · ${job.path} (including subfolders)`:'';
   const memory=job.resident_bytes==null?'':` · RAM ${fmt(job.resident_bytes)}`;
   const waiting=state==='waiting' && job.waiting_paths?.length ? ` · ${job.waiting_paths[0]}`:'';
@@ -647,13 +647,13 @@ function refreshSelection(node, arc){
 async function reveal(node){
   if(revealPending || !node?.path || node.other) return;
   revealPending=true; notice(); syncControls();
-  try{ await post('/api/reveal',{path:node.path}); notice('Revealed in Finder.'); }
+  try{ await post('/api/reveal',{path:node.path}); notice('Revealed in '+FILE_MANAGER+'.'); }
   catch(error){ notice(error.message); }
   finally{ revealPending=false; syncControls(); }
 }
 async function trash(node){
   if(busy || !node?.path || READ_ONLY) return;
-  if(!confirm(`Move to Trash?\n\n${node.path}\n${fmt(node.size)} (allocated estimate)\n\nRestore this item from Finder’s Trash if needed.`)) return;
+  if(!confirm(`Move to ${TRASH}?\n\n${node.path}\n${fmt(node.size)} (allocated estimate)\n\nRestore this item from ${FILE_MANAGER}’s ${TRASH} if needed.`)) return;
   setBusy(true); notice();
   try{
     const r=await post('/api/trash', {path:node.path, revision:node.revision});
@@ -765,11 +765,14 @@ new ResizeObserver(()=>{
 const START=__START_PATH__;
 const TOKEN=__TOKEN__;
 const READ_ONLY=__READ_ONLY__;
+const FILE_MANAGER=__FILE_MANAGER__;
+const TRASH=__TRASH_NAME__;
+const PLATFORM=__PLATFORM__;
 $('#path').value=START;
-$('#modeBadge').textContent=READ_ONLY?'Read-only':'Trash is recoverable';
+$('#modeBadge').textContent=READ_ONLY?'Read-only':TRASH+' is recoverable';
 async function bootSession(){
   if(busy) return;
-  setBusy(true); overlay('Connecting to MacClean …');
+  setBusy(true); overlay('Connecting to DiskClean …');
   try{
     const job=await api('/api/status',{},5000);
     const cached=job.cached_origin;

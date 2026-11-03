@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const scratch = await realpath(await mkdtemp(path.join(os.tmpdir(), 'macclean-browser-')));
+const scratch = await realpath(await mkdtemp(path.join(os.tmpdir(), 'diskclean-browser-')));
 const fixture = path.join(scratch, 'fixture');
 const chrome = process.env.CHROME_BIN || path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell');
 const live = process.argv.includes('--live');
@@ -160,12 +160,12 @@ try {
   await waitFor("document.querySelector('#scanProgressText').textContent.startsWith('Done') && document.querySelector('#pageInfo').textContent==='1–100 of 129' && !document.querySelector('#refresh').disabled");
   assert.equal(scans.length,scansBeforeReload,'reload must reuse completed results without restarting a scan');
   const desktop = await send('Page.captureScreenshot', { format: 'png' });
-  await writeFile('/tmp/macclean-desktop.png', Buffer.from(desktop.data, 'base64'));
+  await writeFile('/tmp/diskclean-desktop.png', Buffer.from(desktop.data, 'base64'));
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await pause(150);
   assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'mobile layout must not overflow horizontally');
   const mobile = await send('Page.captureScreenshot', { format: 'png' });
-  await writeFile('/tmp/macclean-mobile.png', Buffer.from(mobile.data, 'base64'));
+  await writeFile('/tmp/diskclean-mobile.png', Buffer.from(mobile.data, 'base64'));
   if(live){
     const liveRoot=path.join(fixture,'Live');
     await mkdir(path.join(liveRoot,'early'),{recursive:true});
@@ -179,7 +179,7 @@ try {
     assert.equal(await evaluate("document.querySelector('#finderBtn').disabled"),false,'Finder should remain available during a scan');
     assert.equal(await evaluate("document.querySelector('#cancel').hidden"),false);
     const partial=await send('Page.captureScreenshot',{format:'png'});
-    await writeFile('/tmp/macclean-live-preview.png',Buffer.from(partial.data,'base64'));
+    await writeFile('/tmp/diskclean-live-preview.png',Buffer.from(partial.data,'base64'));
     await evaluate("Array.from(document.querySelectorAll('#list button')).find(row=>row.textContent.includes('early /')).click()");
     await waitFor("document.querySelector('#selName').textContent==='early' && document.querySelector('#selMeta').textContent.startsWith('current folder') && document.querySelector('#path').value.endsWith('/Live/early') && document.querySelector('#overlay').style.display==='none'");
     const scansBeforeResume=scans.length;
@@ -219,7 +219,7 @@ try {
   }
   assert.deepEqual(errors, [], 'browser must not report unhandled JavaScript errors');
   console.log('Browser smoke passed: scan, pagination, search, escaping, stable selection, navigation, refresh, failure recovery, responsive layout.');
-  console.log('Screenshots: /tmp/macclean-desktop.png, /tmp/macclean-mobile.png');
+  console.log('Screenshots: /tmp/diskclean-desktop.png, /tmp/diskclean-mobile.png');
 } finally {
   ws?.close();
   for (const child of [browser, server]) {

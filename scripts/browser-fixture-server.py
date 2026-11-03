@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
-"""Browser-test server with staged work for a fixture folder named Live only."""
-from pathlib import Path
+"""Browser-test server with staged work for fixture folders named Live/SlowPreview.
+
+Run through scripts/browser-smoke.mjs; it wraps the real CLI so the page is
+served by exactly the code path a user gets.
+"""
 import sys
 import time
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import macclean
 
-original_walk = macclean._walk_dir
+from diskclean import cli
+from diskclean import scanner
+from diskclean import server
+
+original_walk = scanner._walk_dir
 
 
 def staged_walk(path, *args, **kwargs):
+    """Hold named fixture folders open so the UI can be observed mid-scan."""
     progress = kwargs.get("progress")
     staged = progress is not None and Path(progress.path).name in ("Live", "SlowPreview")
     if staged and Path(path).name == "later":
@@ -23,24 +31,24 @@ def staged_walk(path, *args, **kwargs):
     return node
 
 
-original_preview = macclean.ScanJobs.preview
+original_preview = server.ScanJobs.preview
 
 
 def delayed_preview(self, job_id, path=None):
-    # Prove that a delayed chart request cannot freeze scan status/completion.
+    # Prove a delayed chart request cannot freeze scan status or completion.
     if self.job is not None and Path(self.job["path"]).name == "SlowPreview":
         time.sleep(20)
     return original_preview(self, job_id, path)
 
 
 def fixture_reveal(path):
-    # Exercise real HTTP/UI behavior without opening the user's Finder windows.
-    time.sleep(.15)
-    return (False, "Fixture Finder error") if "<img" in path else (True, "ok")
+    # Exercise the HTTP/UI flow without opening real Finder/Explorer windows.
+    time.sleep(0.15)
+    return (False, "Fixture file-manager error") if "<img" in path else (True, "ok")
 
 
 if __name__ == "__main__":
-    macclean._walk_dir = staged_walk
-    macclean.ScanJobs.preview = delayed_preview
-    macclean.reveal_in_finder = fixture_reveal
-    sys.exit(macclean.main())
+    scanner._walk_dir = staged_walk
+    server.ScanJobs.preview = delayed_preview
+    scanner.reveal = fixture_reveal
+    sys.exit(cli.main(sys.argv[1:], prog="browser-fixture-server.py"))

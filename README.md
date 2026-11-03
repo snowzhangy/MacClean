@@ -1,148 +1,147 @@
-# MacWinClean
+# DiskClean
 
-A fast, interactive folder size analyzer for **macOS and Windows**. Scans a
-folder, shows an interactive **sunburst** in your browser, and lets you move
-space-hogs to the **Trash / Recycle Bin** (recoverable) in one click.
+A fast, interactive folder size analyzer for **macOS, Windows and Linux**. Scan
+a folder, explore it as an interactive **sunburst** in your browser, and move
+space-hogs to the **Trash / Recycle Bin** (recoverable) in a click.
 
-No dependencies, no build step, no internet — pure Python standard library
-plus a self-contained HTML/SVG UI.
+No dependencies, no build step, no internet: pure Python standard library plus
+a self-contained HTML/SVG UI.
 
-## Choose an entry point
+## Entry points
 
-- **MacClean for macOS** (`macclean.py`): background scans, live charts every
-  10 seconds, memory budgets, single-click folder navigation, and recursive
-  refresh of the current folder. See the [MacClean guide](docs/macclean.md)
-  for setup, controls, validation, and performance measurements. Keep
-  `macclean.py` and `macclean.html` together.
-- **MacWinClean for macOS and Windows** (`macwinclean.py`): the cross-platform
-  version, including Windows Explorer and Recycle Bin integration. Its
-  instructions follow below.
+| File | Platform | Notes |
+| --- | --- | --- |
+| `cleaner.py` | macOS, Windows, Linux | The main program. |
+| `winclean.py` | Windows | Same program under a Windows name. |
 
-## Run MacWinClean
+Both are thin wrappers over the `diskclean` package, so every platform runs
+exactly the same scanner, safety checks and UI.
 
 ```sh
-python3 macwinclean.py                  # scans your home folder
-python3 macwinclean.py ~/Downloads      # scan a specific folder (macOS/Linux)
-python  macwinclean.py %USERPROFILE%\Downloads   # Windows
-python3 macwinclean.py ~/ --port 9000   # custom port
-python3 macwinclean.py ~/ --no-open     # don't auto-open the browser
+python3 cleaner.py                       # scan your home folder
+python3 cleaner.py ~/Downloads           # scan a specific folder
+python3 cleaner.py ~/Downloads --read-only
+python3 cleaner.py . --port 0 --no-open
+
+python winclean.py                       # Windows, same flags
+python winclean.py %USERPROFILE%\\Downloads
 ```
 
 It prints a URL (default http://127.0.0.1:8765) and opens it automatically.
 
-## Cross-platform
+## What you get
 
-The same tool runs on macOS and Windows; it auto-detects the OS at startup:
+- **Background scans** that can be cancelled; cancelling keeps the previous
+  results. Only one scan or delete runs at a time.
+- **Live chart:** after 10 seconds a read-only chart shows the largest items
+  found so far and updates every 10 seconds. Trash stays disabled until the
+  scan completes.
+- **Single-click navigation:** click a folder to open its chart, use the
+  breadcrumbs or the center to go up, Shift-click or Space to select a folder
+  for actions without entering it.
+- **Searchable contents list** with paging, including empty and tiny files that
+  are too small for the chart.
+- **Reveal in Finder / Explorer**, and **Move to Trash / Recycle Bin** with a
+  confirmation and a stale-selection guard.
 
-| | macOS | Windows |
-|---|---|---|
-| Recoverable delete | Trash (`NSFileManager`) | Recycle Bin (`Microsoft.VisualBasic`) |
-| Reveal in file manager | Finder (`open -R`) | Explorer (`explorer /select,`) |
-| Size metric | allocated (`st_blocks`) | apparent (`st_size`; `st_blocks` n/a) |
-| Quick "Caches" shortcut | `~/Library/Caches` | `%LOCALAPPDATA%` |
+## Cross-platform behaviour
 
-Protected-folder rules, the cache shortcut, separators, and all UI labels
-("Reveal in Finder" vs "Reveal in Explorer") adapt automatically. On Linux it
-falls back to `gio trash` and `xdg-open` where available.
+The same code paths run everywhere; only the native calls differ:
 
-## Using it
+| | macOS | Windows | Linux |
+| --- | --- | --- | --- |
+| Recoverable delete | Trash (`NSFileManager`) | Recycle Bin (`SendToRecycleBin`) | `gio trash` |
+| Reveal | Finder (`open -R`) | Explorer (`explorer /select,`) | `xdg-open` |
+| Allocated size | `st_blocks` | `GetCompressedFileSizeW` | `st_blocks` |
+| Caches shortcut | `~/Library/Caches` | `%LOCALAPPDATA%` | `~/.cache` |
+| Protected OS roots | `/System`, `/Library`, … | `C:\\Windows`, drive roots, … | `/usr`, `/etc`, … |
 
-- **Hover** a ring segment to see its size and share of the parent.
-- **Single-click** to select it (details + actions appear on the right).
-- **Double-click** a folder segment — or the center — to dive in / pop out.
-- **Right-click** a segment or a list row to **reveal it in your file manager**
-  (folders open; files are selected in their enclosing folder). There's also a
-  reveal button in the details panel.
-- **Breadcrumbs** (top-left) jump back to any ancestor.
-- **Color menu** recolors the chart instantly (no rescan):
-  - **Folder** — a distinct hue per top-level folder.
-  - **Cleanup likelihood** — green = likely safe to clean (caches, logs,
-    `node_modules`, build artifacts, temp, old installers), red = likely
-    important (source, documents, media). *A heuristic guess, not a verdict.*
-  - **Age** — green = old/stale, red = recently modified (auto-scaled to the
-    folder you're viewing).
-- **↻ Refresh** re-scans *only the current folder* from disk and corrects the
-  totals up the chain — use it after you delete things to see updated usage
-  without re-scanning everything.
-- **Move to Trash / Recycle Bin** sends the selected item there after a
-  confirmation. It is always recoverable — nothing is permanently deleted.
-  Sizes update instantly after a delete.
+UI labels ("Reveal in Finder" / "Reveal in Explorer", "Move to Trash" /
+"Move to Recycle Bin") follow the platform automatically.
 
-## Live progress
+## Project layout
 
-Big scans show a **progress bar** with a running count of items and bytes
-scanned. The scanner publishes counters that the browser polls via
-`/api/scan/progress` while the scan request is still in flight; the bar fills
-by top-level completion and the text shows live totals. Refreshing a folder
-shows the same progress.
+```
+cleaner.py            entry point (macOS / Windows / Linux)
+winclean.py           entry point (Windows name, same program)
+diskclean/
+  platform.py         OS identity, path normalization and comparison
+  paths.py            protected folders, scanned-root allowlist, revisions
+  scanner.py          iterative walker, live progress, in-memory index
+  native.py           Trash, reveal, memory accounting per OS
+  server.py           loopback HTTP server, request validation, JSON API
+  cli.py              shared argparse front end
+  ui.html             the page (self-contained, no CDN)
+tests/test_diskclean.py
+```
 
-## How it's fast
+### Why the split
 
-- Traversal uses `os.scandir` and parallelizes across top-level entries with a
-  thread pool (filesystem I/O releases the GIL). Each worker walks its subtree
-  into a private index and they're merged once at the end, so threads never
-  contend on a lock during the scan.
-- Entry types come from the directory's `dirent` (no extra syscall) and only
-  *files* are `stat`'d for their size — directories are never `stat`'d, their
-  size is summed from their children. That roughly halves the syscalls versus
-  the naive `isdir`/`islink`/`lstat`-per-entry approach.
-- The server keeps the full tree in memory and sends only a pruned slice
-  (depth-capped, tiny items aggregated into "(N small items)") so the UI stays
-  snappy even on huge folders. Drilling in is an O(1) lookup.
+Each module has one job and can be tested on its own:
+
+- `platform` answers "where am I and how do paths compare here?" — including
+  Windows 8.3 short names and case-insensitive matching.
+- `paths` answers "may this be deleted, and is the selection still current?"
+- `scanner` answers "what is in this folder, how big, and how far along are we?"
+- `native` is the only place that shells out to the OS.
+- `server` answers "is this request allowed, and which action does it want?"
 
 ## Sizes are an allocated-size estimate
 
-On macOS, reported sizes are the **allocated size** (`st_blocks × 512`) — much
-closer to real disk usage than apparent size (`st_size`), which is wildly off
-for APFS compression and sparse files. (Windows has no `st_blocks`, so it uses
-apparent size.) Treat it as an *estimate of disk usage*, not a promise of
-uniquely reclaimable bytes: hard links are counted once per link, and APFS
-clones / shared extents are counted in full for every path, so deleting one
-copy can free less than the number shown. The UI labels this "allocated est."
-and explains it in the status-bar tooltip.
+Reported sizes are the **allocated size**, not the apparent size, which is much
+closer to real disk usage. On macOS and Linux that is `st_blocks × 512`; on
+Windows it is `GetCompressedFileSizeW`, so sparse and compressed files read as
+smaller than they look. Treat it as an *estimate of disk usage*, not a promise
+of uniquely reclaimable bytes: hard links are counted once per link, and clones
+/ shared extents are counted in full for every path, so deleting one copy can
+free less than the number shown.
 
 ## Incomplete-scan disclosure
 
-Folders that can't be read (permission denied) are **counted and surfaced** in
-the status bar — e.g. "⚠ 3 folders couldn't be read … totals may be low" —
-with the paths in the tooltip. The scan never silently pretends a locked
-folder is empty.
+Folders that cannot be read are **counted and surfaced** ("3 folders couldn't
+be read … totals may be low") with the paths in the tooltip. A locked folder is
+never silently shown as empty. Use `--exclude FOLDER` to skip a folder that
+stalls the scan, such as a cloud-provider trash directory.
 
-## Safety & security model
+## Safety and security model
 
-This is a local server that can delete files, so it's locked down:
+This is a local server that can delete files, so it is locked down:
 
-- **Loopback only.** It binds to `127.0.0.1` — not reachable from the network.
-- **Per-process token.** *Every* API request (scan/refresh as well as
-  delete/reveal) must carry a random session token embedded in the page, so
-  another website in your browser can't drive it or trigger disk-heavy scans
-  (CSRF). Cross-origin requests are rejected on top of that.
-- **Hardened local responses.** Pages and API responses are `no-store`, cannot
-  be framed, include a restrictive Content Security Policy, and reject oversized
-  JSON request bodies before parsing.
-- **Scanned-root allowlist.** The server will only Trash items that live
-  *strictly inside* a folder you actually scanned this session. Anything
-  outside is refused.
-- **Protected folders.** Home, top-level/system folders (macOS: `/System`,
-  `/Library`, `/Applications`, …; Windows: drive roots, `C:\Windows`,
-  `Program Files`, `C:\Users`, …), volume/drive roots, and the active scan root
-  itself can never be trashed — enforced server-side, regardless of the UI.
-  Symlinks in the path *prefix* are resolved before the allowlist check, so a
-  link can't smuggle a location outside the scanned tree.
-- **Trash the item itself, never its target.** Selecting a symlink trashes the
-  link, not the file it points at (macOS uses `NSFileManager.trashItemAtURL`,
-  which doesn't follow the final symlink).
-- **Recoverable, never permanent.** Removal moves items to the macOS Trash
-  (with Put-Back) or the Windows Recycle Bin; nothing is permanently deleted.
+- **Loopback only.** It binds to `127.0.0.1`, so it is not reachable from the
+  network.
+- **Per-process token.** Every API request must carry a random token embedded
+  in the page, so another website cannot drive it (CSRF). Cross-origin calls
+  and unexpected `Host` headers are rejected on top of that.
+- **Hardened responses.** `no-store`, no framing, a restrictive Content
+  Security Policy, and request bodies that are size-limited before parsing.
+- **Scanned-root allowlist.** Only items *strictly inside* a folder you scanned
+  this session may be deleted.
+- **Protected folders.** Home and its main subfolders, OS folders, drive and
+  volume roots, and the scan root itself can never be deleted, enforced
+  server-side regardless of the UI.
+- **Stale-selection guard.** Each item carries a revision derived from its
+  identity and timestamps; a delete is refused if the item changed since the
+  scan.
+- **Links are never followed.** Selecting a symlink trashes the link, not its
+  target.
+- **Recoverable, never permanent.** Items go to the Trash or Recycle Bin;
+  nothing is permanently deleted and no Trash is ever emptied.
 
 ## Tests
 
 ```sh
-python3 -m unittest -v test_macwinclean
+python -m unittest discover -s tests -t . -v
 ```
 
-Covers scanner accuracy (incl. sparse files), live scan-progress counters,
-permission-skip reporting, deletion path validation (outside-root, protected
-dirs, symlink escapes), stale-index cleanup after deletes, JS-injection
-escaping, platform helpers, and the HTTP auth surface (missing token,
-cross-origin, refused paths, security headers, request body limits).
+The suite is identical on all three platforms and covers scanner accuracy
+(including sparse files and deep trees), cancellation and limits, progress
+accounting, index consistency, deletion validation (outside-root, protected
+folders, symlink escapes, stale revisions, read-only mode), and the HTTP surface
+(authentication, origin and `Host` checks, error shapes, scan lifecycle,
+pagination, delete round trip). One test performs a real Trash/Recycle Bin move
+on a file it creates, and skips itself when no Trash integration is available.
+
+## More
+
+- [Usage guide](docs/guide.md) — controls, validation options, troubleshooting
+- [Engineering notes](docs/engineering-review.md) — findings and measurements

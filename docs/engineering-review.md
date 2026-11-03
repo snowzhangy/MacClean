@@ -16,7 +16,7 @@
 | Actions accepted an unversioned path | Indexed item revisions and immediate native preflight identity checks; native command paths are absolute. |
 | Filename/age heuristics claimed items were safe to clean | Removed that advice; only folder grouping and age visualization remain. |
 | CLI startup failed noisily on occupied ports | Validated options, `--port 0`, actionable errors, read-only mode, and orderly server closure. |
-| Backend and UI shared one large string | UI moved to `macclean.html`; one-pass placeholder substitution prevents recursive token expansion. |
+| Backend and UI shared one large string | UI moved to `diskclean/ui.html`; one-pass placeholder substitution prevents recursive token expansion. |
 | A fixed 500,000-entry default stopped large home scans | Default entry cap removed; current process memory is sampled against a RAM-based budget. Explicit caps remain optional, with per-job browser retries. Failure state retains scalar data so tracebacks cannot keep a failed tree alive. |
 | Long scans showed no chart until completion | Separate bounded summaries provide read-only previews every 10 seconds. Opening a folder projects only its immediate children already in memory, caches its preview, and retains that focus for later updates and completion. No extra disk traversal or per-file navigation tracking is added. |
 | Clicking folders selected them without entering their chart | A click opens the folder; Shift-click or Space selects it for actions. Entering a folder synchronizes the path field, making the next Scan target that folder. |
@@ -98,3 +98,32 @@ exhaust available file descriptors; failures are disclosed as skipped paths.
 Cancellation cannot interrupt a blocked kernel filesystem operation. Scan
 results are live estimates, not a consistent APFS snapshot or a measurement of
 unique reclaimable extents.
+
+
+## Cross-platform restructure (v2)
+
+The macOS and Windows versions had drifted into two separate engines, and the
+Windows one had never run in CI. They are now one library, `diskclean`:
+
+| Module | Responsibility |
+| --- | --- |
+| `platform` | OS identity, normalization (`realpath` for 8.3 names), case-folded comparison |
+| `paths` | protected folders, scanned-root allowlist, revisions, exclusions |
+| `scanner` | iterative walker, live progress, limits, index, delete hand-off |
+| `native` | Trash / Recycle Bin / gio, reveal, memory accounting |
+| `server` | loopback HTTP, request validation, unified error shape |
+| `cli` | shared argparse front end for `cleaner.py` and `winclean.py` |
+
+Windows-specific findings fixed during the merge, each covered by a test:
+
+| Finding | Fix |
+| --- | --- |
+| `st_blocks` does not exist, so sparse files reported apparent size | `GetCompressedFileSizeW` via ctypes; links are excluded because it follows reparse points |
+| `scandir` reports `st_dev`/`st_ino` as 0, breaking stale-delete checks | Re-`stat` on Windows to get the NTFS file index |
+| Identity included `st_ctime`, which is *creation* time on Windows | Drop ctime there; compare dev/inode/mode/mtime |
+| `realpath` does not resolve Windows links, so a selected link was never "inside" a root | Compare the prefix-resolved path; `inside()` no longer follows the final component |
+| Protected paths and index keys were case-sensitive | `normcase` on comparison and on every index write |
+| `SystemDrive` can disagree with `SystemRoot` (e.g. a shell started on D:) | Node the OS root from `SystemRoot` |
+| No `O_DIRECTORY`/`O_NOFOLLOW`, so POSIX descriptor hardening is unavailable | Windows walker re-checks the root identity and refuses to publish if it changed |
+| The advanced scanner measured whole-process RSS, so any embedder failed every scan | Budget the *growth* over the scan baseline |
+| No Windows job in CI | Matrix now covers `windows-latest` |

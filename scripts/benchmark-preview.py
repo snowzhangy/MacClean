@@ -9,10 +9,10 @@ import tempfile
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import macclean
+from diskclean import scanner
 
 
-class CountersOnly(macclean.ScanProgress):
+class CountersOnly(scanner.ScanProgress):
     def begin_branch(self, path):
         pass
 
@@ -35,7 +35,7 @@ def main():
     if args.rounds < 2:
         parser.error("--rounds must be at least 2")
     result = {}
-    with tempfile.TemporaryDirectory(prefix="macclean-preview-benchmark-") as root:
+    with tempfile.TemporaryDirectory(prefix="diskclean-preview-benchmark-") as root:
         for label, folders, files in (("subtrees", 64, 200), ("flat", 1, 12800)):
             dataset = Path(root) / label
             dataset.mkdir()
@@ -46,12 +46,12 @@ def main():
                     (folder / str(f)).write_bytes(b"x" * 64)
             times = {"counters_only": [], "live_summaries": []}
             # Alternate execution order to reduce cache/order bias.
-            modes = [("counters_only", CountersOnly), ("live_summaries", macclean.ScanProgress)]
+            modes = [("counters_only", CountersOnly), ("live_summaries", scanner.ScanProgress)]
             for round_id in range(args.rounds):
                 for name, cls in modes[::1 if round_id % 2 == 0 else -1]:
                     progress = cls()
                     start = time.perf_counter()
-                    macclean.scan(str(dataset), progress=progress)
+                    scanner.scan(str(dataset), progress=progress)
                     times[name].append(time.perf_counter() - start)
                     if name == "live_summaries":
                         live = progress
